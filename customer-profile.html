@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AutoPro CRM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f12; --surface: #18181f; --surface2: #22222d;
+    --border: rgba(255,255,255,0.08); --text: #f0ede8; --muted: #8a8798;
+    --accent: #e8602c; --success: #2ecc71;
+    --font-head: 'Inter', sans-serif; --font-body: 'Inter', sans-serif;
+    --radius: 14px; --radius-sm: 8px;
+  }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+  .screen { display: none; min-height: 100dvh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* LOGIN */
+  #login { background: var(--bg); align-items: center; justify-content: center; padding: 2rem 1.5rem; position: relative; overflow: hidden; }
+  #login::before { content: ''; position: absolute; top: -120px; left: 50%; transform: translateX(-50%); width: 500px; height: 500px; background: radial-gradient(circle, rgba(232,96,44,0.18) 0%, transparent 70%); pointer-events: none; }
+  .login-card { width: 100%; max-width: 380px; background: var(--surface); border: 0.5px solid var(--border); border-radius: 24px; padding: 2.5rem 2rem; position: relative; z-index: 1; }
+  .logo-mark { width: 52px; height: 52px; background: linear-gradient(135deg, var(--accent), #c44a1e); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-family: var(--font-head); font-size: 20px; font-weight: 700; color: #fff; letter-spacing: -0.5px; }
+  .login-title { font-family: var(--font-head); font-size: 26px; font-weight: 700; text-align: center; margin-bottom: 0.3rem; letter-spacing: -0.5px; }
+  .login-sub { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 2rem; }
+  .creds-badge { background: rgba(232,96,44,0.08); border: 1px dashed rgba(232,96,44,0.3); border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 13px; }
+  .creds-badge strong { color: var(--accent); }
+  .error-msg { background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3); border-radius: var(--radius-sm); padding: 0.6rem 0.9rem; font-size: 13px; color: #e74c3c; margin-bottom: 1rem; display: none; }
+
+  /* SHARED */
+  label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.4rem; }
+  input[type="text"], input[type="email"], input[type="password"], input[type="tel"], input[type="date"], input[type="number"], textarea, select { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-family: var(--font-body); font-size: 15px; padding: 0.75rem 1rem; outline: none; transition: border-color 0.2s; -webkit-appearance: none; appearance: none; }
+  input[type="date"] {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 0.75rem 1rem;
+  outline: none;
+  transition: border-color 0.2s;
+  color-scheme: dark;
+  cursor: pointer;
+}
+input[type="date"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(232,96,44,0.12);
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(64%) sepia(53%) saturate(2531%) hue-rotate(342deg) brightness(97%) contrast(93%);
+  cursor: pointer;
+  opacity: 0.85;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(232,96,44,0.12); }
+  input::placeholder, textarea::placeholder { color: #4a4a5a; }
+  textarea { resize: vertical; min-height: 90px; }
+  .field { margin-bottom: 1.2rem; }
+  .btn { width: 100%; padding: 0.85rem 1.5rem; border-radius: var(--radius-sm); border: none; font-family: var(--font-body); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-primary { background: linear-gradient(135deg, var(--accent), #c44a1e); color: #fff; margin-top: 0.5rem; }
+  .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-size: 14px; }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .login-hint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 1.2rem; }
+
+  /* TOPBAR */
+  .topbar { background: var(--surface); border-bottom: 0.5px solid var(--border); padding: 1rem 1.25rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; gap: 10px; }
+  .topbar-brand { font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .topbar-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; display: inline-block; }
+  .topbar-actions { display: flex; align-items: center; gap: 8px; }
+  .icon-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: var(--font-body); font-size: 13px; padding: 0.4rem 0.9rem; border-radius: 99px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.active-tab { border-color: var(--accent); color: var(--accent); background: rgba(232,96,44,0.08); }
+
+  /* FORM */
+  #profile { background: var(--bg); flex-direction: column; }
+  .form-body { padding: 1.5rem 1.25rem 3rem; flex: 1; overflow-y: auto; }
+  .section-heading { font-family: var(--font-head); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 1.8rem 0 1rem; display: flex; align-items: center; gap: 8px; }
+  .section-heading::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
+  .profile-id { background: var(--surface2); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; font-size: 12px; color: var(--muted); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 6px; font-family: monospace; }
+  .profile-id span { color: var(--text); }
+
+  /* CAR SEARCH */
+  .car-search-wrap { position: relative; }
+  .car-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); max-height: 220px; overflow-y: auto; z-index: 100; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .car-dropdown.open { display: block; }
+  .car-option { padding: 0.65rem 1rem; font-size: 14px; cursor: pointer; transition: background 0.15s; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .car-option:hover { background: var(--surface2); color: var(--accent); }
+  .car-option .car-make { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .car-option.custom-entry { color: var(--accent2); font-style: italic; }
+  .car-search-wrap .clear-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; display: none; }
+
+  /* PHONE */
+  .phone-wrap { position: relative; }
+  .phone-prefix { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+  .phone-wrap input { padding-left: 2.5rem; }
+
+  /* COST */
+  .cost-wrap { position: relative; }
+  .cost-prefix { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 15px; pointer-events: none; }
+  .cost-wrap input { padding-left: 1.75rem; }
+  .cost-wrap input::-webkit-outer-spin-button,
+  .cost-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* SELECT */
+  .select-wrap { position: relative; }
+  .select-wrap::after { content: '▾'; position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; font-size: 14px; }
+  select { padding-right: 2.5rem; cursor: pointer; }
+  select option { background: #1a1a24; }
+
+  /* PHOTOS */
+  .photo-drop { border: 1.5px dashed rgba(232,96,44,0.35); border-radius: var(--radius); padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(232,96,44,0.03); }
+  .photo-drop:hover { border-color: var(--accent); background: rgba(232,96,44,0.07); }
+  .photo-drop:active { transform: scale(0.98); }
+  .photo-drop-icon { font-size: 32px; margin-bottom: 0.5rem; }
+  .photo-drop-text { font-size: 14px; color: var(--muted); }
+  .photo-drop-text strong { color: var(--accent); }
+  #photo-input { display: none; }
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 1rem; }
+  .photo-thumb { aspect-ratio: 1; border-radius: var(--radius-sm); object-fit: cover; border: 0.5px solid var(--border); position: relative; overflow: hidden; background: var(--surface2); display: flex; align-items: center; justify-content: center; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-remove { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); border: none; color: #fff; width: 20px; height: 20px; border-radius: 50%; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+
+  .vin-hint { font-size: 12px; color: var(--muted); margin-top: 0.35rem; letter-spacing: 0.03em; }
+  .char-counter { font-size: 11px; color: #4a4a5a; text-align: right; margin-top: 0.25rem; }
+
+  /* PROFILES LIST */
+  #profiles-list { background: var(--bg); flex-direction: column; }
+  .list-body { padding: 1.25rem; flex: 1; overflow-y: auto; }
+  .list-empty { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+  .list-empty .empty-icon { font-size: 48px; margin-bottom: 1rem; opacity: 0.4; }
+  .list-empty p { font-size: 15px; }
+  .list-empty small { font-size: 13px; }
+
+  .profile-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1rem 1.1rem; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.2s; position: relative; }
+  .profile-card:hover { border-color: rgba(232,96,44,0.4); background: #1c1c25; }
+  .profile-card:active { transform: scale(0.99); }
+  .pc-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 0.5rem; }
+  .pc-name { font-family: var(--font-head); font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+  .pc-id { font-size: 12px; font-weight: bold; color: var(--muted); font-family: monospace; margin-top: 2px; }
+  .pc-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.6rem; }
+  .pc-pill { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 99px; padding: 3px 10px; font-size: 12px; color: var(--muted); }
+  .pc-pill.highlight { background: rgba(232,96,44,0.1); border-color: rgba(232,96,44,0.2); color: var(--accent); }
+  .pc-issues { font-size: 13px; color: var(--muted); margin-top: 0.6rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pc-delete { background: none; border: none; color: #4a4a5a; font-size: 18px; cursor: pointer; padding: 4px; border-radius: 6px; transition: color 0.2s; flex-shrink: 0; }
+  .pc-delete:hover { color: #e74c3c; }
+  .pc-photos { display: flex; gap: 4px; margin-top: 0.6rem; }
+  .pc-photo-thumb { width: 36px; height: 36px; border-radius: 6px; object-fit: cover; border: 0.5px solid var(--border); }
+  .pc-photo-more { width: 36px; height: 36px; border-radius: 6px; background: var(--surface2); border: 0.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--muted); }
+
+  .list-count { font-size: 13px; color: var(--muted); margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 0.5px solid var(--border); }
+  .list-count strong { color: var(--text); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(100px); background: #1a3a2a; border: 1px solid rgba(46,204,113,0.3); color: var(--success); padding: 0.75rem 1.5rem; border-radius: 99px; font-size: 14px; font-weight: 500; z-index: 999; transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media print {
+
+  body {
+    background: white;
+    color: black;
+  }
+
+  .topbar,
+  .btn,
+  .icon-btn,
+  .toast,
+  #login,
+  #profile {
+    display: none !important;
+  }
+
+  #profiles-list {
+    display: block !important;
+  }
+
+  .profile-card {
+    break-inside: avoid;
+    border: 1px solid #ccc;
+    background: white;
+    color: black;
+  }
+
+  .pc-pill {
+    border: 1px solid #ccc;
+    color: black;
+    background: none;
+  }
+
+  .pc-issues {
+    color: black;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="screen active" id="login">
+  <div class="login-card">
+    <div class="logo-mark">AP</div>
+    <h1 class="login-title">AutoPro CRM</h1>
+    <p class="login-sub">Sign in to your workspace</p>
+    <div class="error-msg" id="login-error">Incorrect username or password.</div>
+    <div class="field">
+      <label for="username">Email</label>
+      <input type="email" id="username" placeholder="Enter email" autocomplete="username" />
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="Enter password" autocomplete="current-password" />
+    </div>
+    <button class="btn btn-primary" onclick="doLogin()">Sign In →</button>
+    <p class="login-hint">Contact your admin to reset credentials.</p>
+  </div>
+</div>
+
+<!-- PROFILE FORM -->
+<div class="screen" id="profile">
+  <div class="topbar">
+    <div class="topbar-brand"><span class="topbar-dot"></span>AutoPro CRM</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="goToList()">Profiles</button>
+      <button class="icon-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="form-body">
+    <div class="profile-id">🔑 Profile ID: <span id="profile-id-val">—</span></div>
+
+    <div class="section-heading">Customer Info</div>
+    <div class="field">
+      <label for="f-name">Full Name</label>
+      <input type="text" id="f-name" placeholder="e.g. James Whitfield" />
+    </div>
+    <div class="field">
+      <label for="f-date">Service Date</label>
+      <input type="date" id="f-date" />
+    </div>    
+    <div class="field">
+      <label for="f-phone">Phone Number</label>
+      <div class="phone-wrap">
+        <span class="phone-prefix">+1</span>
+        <input type="tel" id="f-phone" placeholder="(416) 555-0199" maxlength="14" oninput="formatPhone(this)" />
+      </div>
+    </div>
+
+    <div class="section-heading">Vehicle Details</div>
+    <div class="field">
+      <label for="f-car">Car Model</label>
+      <div class="car-search-wrap">
+        <input type="text" id="f-car" placeholder="Search or type any make & model…" autocomplete="off"
+          oninput="filterCars(this.value)" onfocus="filterCars(this.value)" />
+        <button class="clear-btn" id="car-clear" onclick="clearCar()" title="Clear">×</button>
+        <div class="car-dropdown" id="car-dropdown"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-year">Car Year</label>
+      <div class="select-wrap">
+        <select id="f-year"><option value="">Select year…</option></select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="f-vin">VIN</label>
+      <input type="text" id="f-vin" placeholder="e.g. 1HGBH41JXMN109186" maxlength="17" oninput="this.value=this.value.toUpperCase()" />
+      <div class="vin-hint">17-character vehicle identification number</div>
+    </div>
+
+    <div class="section-heading">Service Notes</div>
+    <div class="field">
+      <label for="f-issues">Issues Reported</label>
+      <textarea id="f-issues" placeholder="Describe the customer's reported issues…" oninput="countChars('f-issues','cc-issues',500)"></textarea>
+      <div class="char-counter" id="cc-issues">0 / 500</div>
+    </div>
+    <div class="field">
+      <label for="f-notes">Internal Notes</label>
+      <textarea id="f-notes" placeholder="Technician notes, history, follow-ups…" oninput="countChars('f-notes','cc-notes',500)"></textarea>
+      <div class="char-counter" id="cc-notes">0 / 500</div>
+    </div>
+    <div class="field">
+      <label for="f-status">Status</label>
+      <div class="select-wrap">
+        <select id="f-status">
+          <option value="new">New</option>
+          <option value="ongoing">On-going</option>
+          <option value="paused">Paused</option>
+          <option value="incomplete">Incomplete</option>
+          <option value="complete">Complete</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="f-cost">Cost</label>
+      <div class="cost-wrap">
+        <span class="cost-prefix">$</span>
+        <input type="number" id="f-cost" placeholder="0.00" step="0.01" min="0" />
+      </div>
+    </div>
+
+    <div class="section-heading">Photos</div>
+    <div class="photo-drop" onclick="document.getElementById('photo-input').click()" id="photo-drop-zone">
+      <div class="photo-drop-icon">📷</div>
+      <div class="photo-drop-text"><strong>Tap to upload photos</strong><br>JPEG, PNG, HEIC supported</div>
+    </div>
+    <input type="file" id="photo-input" accept="image/*" multiple onchange="handlePhotos(this)">
+    <div class="photo-grid" id="photo-grid"></div>
+
+    <div style="margin-top: 2rem;">
+      <button class="btn btn-primary" onclick="saveProfile()">Save Profile ✓</button>
+      <button class="btn btn-ghost" style="margin-top: 0.75rem;" onclick="clearForm()">Clear Form</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILES LIST -->
+<div class="screen" id="profiles-list">
+  <div class="topbar">
+    <div class="topbar-brand"><span class="topbar-dot"></span>AutoPro CRM</div>
+    <div class="topbar-actions">
+      <button class="icon-btn active-tab" onclick="goToList()">Profiles</button>
+      <button class="icon-btn" onclick="goToForm()">+ New</button>
+      <button class="icon-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="list-body">
+    <div id="list-count" class="list-count"></div>
+    <div id="profiles-container"></div>
+  </div>
+  <button class="icon-btn" onclick="window.print()">Print</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+const supabaseUrl = "https://urojkfaiynflxtferfgr.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyb2prZmFpeW5mbHh0ZmVyZmdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5MDgzODksImV4cCI6MjA5OTQ4NDM4OX0.tm6IKesZc1_nPgHW8FQNr648r2gp3hm4k8iHJMwzWgE";
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+let editingProfileId = null;
+
+// const USERS = { admin: 'admin', tech: 'garage123' };
+let savedProfiles = JSON.parse(localStorage.getItem('autopro_profiles') || '[]');
+let currentPhotos = [];
+
+// ── CAR DATA ──
+const CARS = [
+  'Toyota Camry','Toyota Corolla','Toyota RAV4','Toyota Highlander','Toyota Tacoma','Toyota Tundra','Toyota Prius','Toyota 4Runner','Toyota Sienna','Toyota Sequoia','Toyota Venza','Toyota C-HR','Toyota Land Cruiser','Toyota GR86','Toyota Supra',
+  'Honda Civic','Honda Accord','Honda CR-V','Honda Pilot','Honda Odyssey','Honda HR-V','Honda Ridgeline','Honda Passport','Honda Insight',
+  'Ford F-150','Ford Mustang','Ford Explorer','Ford Escape','Ford Edge','Ford Bronco','Ford Ranger','Ford Expedition','Ford Maverick','Ford EcoSport',
+  'Chevrolet Silverado','Chevrolet Equinox','Chevrolet Traverse','Chevrolet Malibu','Chevrolet Tahoe','Chevrolet Suburban','Chevrolet Colorado','Chevrolet Blazer','Chevrolet Camaro','Chevrolet Corvette','Chevrolet Trax',
+  'GMC Sierra','GMC Terrain','GMC Acadia','GMC Yukon','GMC Canyon',
+  'Dodge Charger','Dodge Challenger','Dodge Durango','Dodge RAM 1500','Dodge Journey',
+  'Jeep Wrangler','Jeep Grand Cherokee','Jeep Cherokee','Jeep Compass','Jeep Renegade','Jeep Gladiator',
+  'BMW 3 Series','BMW 5 Series','BMW 7 Series','BMW X3','BMW X5','BMW X7','BMW X1','BMW X6','BMW M3','BMW M5','BMW M8','BMW i4','BMW iX',
+  'Mercedes-Benz C-Class','Mercedes-Benz E-Class','Mercedes-Benz S-Class','Mercedes-Benz GLC','Mercedes-Benz GLE','Mercedes-Benz GLS','Mercedes-Benz A-Class','Mercedes-Benz CLA','Mercedes-Benz AMG GT','Mercedes-Benz EQS',
+  'Audi A3','Audi A4','Audi A6','Audi Q3','Audi Q5','Audi Q7','Audi Q8','Audi e-tron','Audi TT','Audi R8','Audi S3','Audi S4',
+  'Hyundai Elantra','Hyundai Sonata','Hyundai Tucson','Hyundai Santa Fe','Hyundai Palisade','Hyundai Kona','Hyundai Ioniq 5','Hyundai Ioniq 6','Hyundai Venue',
+  'Kia Forte','Kia Optima','Kia Stinger','Kia Sportage','Kia Sorento','Kia Telluride','Kia Soul','Kia EV6','Kia Carnival',
+  'Nissan Altima','Nissan Maxima','Nissan Sentra','Nissan Rogue','Nissan Pathfinder','Nissan Murano','Nissan Armada','Nissan Frontier','Nissan Titan','Nissan Leaf',
+  'Subaru Outback','Subaru Forester','Subaru Impreza','Subaru Legacy','Subaru Crosstrek','Subaru WRX','Subaru BRZ','Subaru Ascent',
+  'Volkswagen Jetta','Volkswagen Passat','Volkswagen Golf','Volkswagen Tiguan','Volkswagen Atlas','Volkswagen ID.4','Volkswagen Arteon',
+  'Mazda3','Mazda6','Mazda CX-3','Mazda CX-5','Mazda CX-9','Mazda MX-5 Miata',
+  'Tesla Model 3','Tesla Model Y','Tesla Model S','Tesla Model X','Tesla Cybertruck',
+  'Lexus ES','Lexus IS','Lexus LS','Lexus RX','Lexus NX','Lexus GX','Lexus LX',
+  'Acura TLX','Acura MDX','Acura RDX','Acura ILX','Acura NSX',
+  'Infiniti Q50','Infiniti Q60','Infiniti QX50','Infiniti QX60','Infiniti QX80',
+  'Cadillac CT4','Cadillac CT5','Cadillac Escalade','Cadillac XT4','Cadillac XT5','Cadillac XT6',
+  'Lincoln Corsair','Lincoln Nautilus','Lincoln Aviator','Lincoln Navigator',
+  'Buick Encore','Buick Envision','Buick Enclave','Buick LaCrosse',
+  'Chrysler 300','Chrysler Pacifica','Chrysler Voyager',
+  'Ram 1500','Ram 2500','Ram 3500','Ram ProMaster',
+  'Volvo XC40','Volvo XC60','Volvo XC90','Volvo S60','Volvo S90',
+  'Land Rover Defender','Land Rover Discovery','Range Rover Sport','Range Rover Evoque','Range Rover Velar',
+  'Porsche 911','Porsche Cayenne','Porsche Macan','Porsche Panamera','Porsche Taycan',
+  'Genesis G70','Genesis G80','Genesis GV70','Genesis GV80',
+  'Rivian R1T','Rivian R1S',
+  'Mini Cooper','Mini Countryman','Mini Clubman',
+  'Mitsubishi Outlander','Mitsubishi Eclipse Cross','Mitsubishi Galant',
+  'Fiat 500','Fiat 124 Spider',
+  'Alfa Romeo Giulia','Alfa Romeo Stelvio',
+  'Maserati Ghibli','Maserati Levante','Maserati Quattroporte',
+  'Ferrari 488','Ferrari F8','Ferrari Roma','Ferrari SF90',
+  'Lamborghini Huracan','Lamborghini Urus',
+  'Bentley Continental','Bentley Bentayga',
+  'Rolls-Royce Ghost','Rolls-Royce Cullinan',
+];
+
+(async function checkSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    showScreen('profile');
+    newProfileId();
+  }
+})();
+
+// ── YEAR POPULATE ──
+(function() {
+  const sel = document.getElementById('f-year');
+  const now = new Date().getFullYear();
+  for (let y = now + 1; y >= 1970; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    sel.appendChild(o);
+  }
+})();
+
+// ── SCREENS ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function goToList() {
+  await loadProfiles();
+  renderList();
+  showScreen('profiles-list');
+}
+
+function goToForm() {
+  showScreen('profile');
+}
+
+// ── LOGIN ──
+async function doLogin() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+  const err = document.getElementById('login-error');
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: u,
+    password: p
+  });
+
+  if (error) {
+    err.textContent = error.message;
+    err.style.display = 'block';
+    document.getElementById('password').value = '';
+    return;
+  }
+
+  err.style.display = 'none';
+  showScreen('profile');
+  newProfileId();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login').classList.contains('active')) doLogin();
+});
+
+async function doLogout() {
+  await supabase.auth.signOut();
+  showScreen('login');
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+}
+
+function newProfileId() {
+  document.getElementById('profile-id-val').textContent = 'PRF-' + Math.random().toString(36).substring(2,8).toUpperCase();
+}
+
+// ── CAR SEARCH ──
+function filterCars(q) {
+  const dd = document.getElementById('car-dropdown');
+  const clr = document.getElementById('car-clear');
+  clr.style.display = q ? 'block' : 'none';
+  if (!q || q.length < 1) { dd.classList.remove('open'); return; }
+  const results = CARS.filter(c => c.toLowerCase().includes(q.toLowerCase())).slice(0, 12);
+  let html = results.map(c => {
+    const make = c.split(' ')[0];
+    return `<div class="car-option" onclick="selectCar('${c.replace(/'/g,"\\'")}')"><span>${c}</span><span class="car-make">${make}</span></div>`;
+  }).join('');
+  // Always show "use as typed" option at bottom
+  html += `<div class="car-option custom-entry" onclick="selectCar('${q.replace(/'/g,"\\'")}')">Use "${q}" as entered</div>`;
+  dd.innerHTML = html;
+  dd.classList.add('open');
+}
+
+function selectCar(val) {
+  document.getElementById('f-car').value = val;
+  document.getElementById('car-dropdown').classList.remove('open');
+  document.getElementById('car-clear').style.display = 'block';
+}
+
+function clearCar() {
+  document.getElementById('f-car').value = '';
+  document.getElementById('car-dropdown').classList.remove('open');
+  document.getElementById('car-clear').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.car-search-wrap')) document.getElementById('car-dropdown').classList.remove('open');
+});
+
+// ── PHONE FORMAT ──
+function formatPhone(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length >= 6) v = '(' + v.substring(0,3) + ') ' + v.substring(3,6) + '-' + v.substring(6,10);
+  else if (v.length >= 3) v = '(' + v.substring(0,3) + ') ' + v.substring(3);
+  el.value = v;
+}
+
+// ── CHAR COUNTER ──
+function countChars(fieldId, counterId, max) {
+  const len = document.getElementById(fieldId).value.length;
+  document.getElementById(counterId).textContent = `${len} / ${max}`;
+}
+
+// ── PHOTOS ──
+function handlePhotos(input) {
+  Array.from(input.files).forEach(f => {
+    if (currentPhotos.length >= 9) return;
+    const reader = new FileReader();
+    reader.onload = e => { currentPhotos.push(e.target.result); renderPhotos(); };
+    reader.readAsDataURL(f);
+  });
+  input.value = '';
+}
+
+function renderPhotos() {
+  document.getElementById('photo-grid').innerHTML = currentPhotos.map((src, i) => `
+    <div class="photo-thumb">
+      <img src="${src}" alt="Photo ${i+1}">
+      <button class="photo-remove" onclick="removePhoto(${i})" aria-label="Remove photo">×</button>
+    </div>`).join('');
+}
+
+function removePhoto(i) { currentPhotos.splice(i, 1); renderPhotos(); }
+
+const dropZone = document.getElementById('photo-drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = ''; });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.style.borderColor = '';
+  Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')).forEach(f => {
+    if (currentPhotos.length >= 9) return;
+    const reader = new FileReader();
+    reader.onload = ev => { currentPhotos.push(ev.target.result); renderPhotos(); };
+    reader.readAsDataURL(f);
+  });
+});
+
+
+
+
+
+// ── CLEAR FORM ──
+function clearForm(silent) {
+  if (!silent && !confirm('Clear all form data?')) return;
+  ['f-name','f-phone','f-car','f-vin','f-issues','f-notes','f-cost'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-year').value = '';
+  currentPhotos = [];
+  renderPhotos();
+  document.getElementById('cc-issues').textContent = '0 / 500';
+  document.getElementById('cc-notes').textContent = '0 / 500';
+  clearCar();
+  newProfileId();
+}
+
+function editProfile(e, id) {
+  e.stopPropagation();
+
+  const profile = savedProfiles.find(p => p.id === id);
+  if (!profile) return;
+
+  editingProfileId = id;
+
+  // load into form
+  document.getElementById('profile-id-val').textContent = profile.id;
+  document.getElementById('f-name').value = profile.name;
+  document.getElementById('f-phone').value = profile.phone;
+  document.getElementById('f-car').value = profile.car;
+  document.getElementById('f-year').value = profile.year;
+  document.getElementById('f-vin').value = profile.vin;
+  document.getElementById('f-issues').value = profile.issues;
+  document.getElementById('f-notes').value = profile.notes;
+  document.getElementById('f-status').value = profile.status || "new";
+  document.getElementById('f-cost').value = profile.cost || '';
+  currentPhotos = [...profile.photos];
+  renderPhotos();
+
+  showScreen('profile');
+}
+
+// ── DELETE PROFILE ──
+async function deleteProfile(e, id) {
+  e.stopPropagation();
+
+  if (!confirm("Delete this profile?")) return;
+
+  await supabase
+    .from('profiles')
+    .delete()
+    .eq('id', id);
+
+  await loadProfiles();
+  renderList();
+}
+
+// ── RENDER LIST ──
+function renderList() {
+  const container = document.getElementById('profiles-container');
+  const countEl = document.getElementById('list-count');
+
+  if (!savedProfiles.length) {
+    countEl.innerHTML = '';
+    container.innerHTML = `<div class="list-empty"><div class="empty-icon">🗂️</div><p>No profiles saved yet.</p><small>Save a customer profile and it will appear here.</small></div>`;
+    return;
+  }
+
+  const totalCost = savedProfiles.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
+  countEl.innerHTML = `<strong>${savedProfiles.length}</strong> profile${savedProfiles.length !== 1 ? 's' : ''} saved &nbsp;·&nbsp; <strong>$${totalCost.toFixed(2)}</strong> total`;
+
+  container.innerHTML = savedProfiles.map(p => {
+    const initials = p.name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase() || '?';
+    const vehicleLabel = [p.year, p.car].filter(Boolean).join(' ') || null;
+    const photosHtml = p.photos.length ? `<div class="pc-photos">
+      ${p.photos.slice(0,3).map(src => `<img class="pc-photo-thumb" src="${src}" alt="">`).join('')}
+      ${p.photos.length > 3 ? `<div class="pc-photo-more">+${p.photos.length - 3}</div>` : ''}
+    </div>` : '';
+
+    return `<div class="profile-card">
+      <div class="pc-header">
+        <div>
+          <div class="pc-name">${p.name} - ${vehicleLabel}</div>
+          <div class="pc-id">${p.date}</div>
+        </div>
+        <div>
+          <button class="pc-delete" onclick="editProfile(event,'${p.id}')" title="Edit">✏️</button>
+          <button class="pc-delete" onclick="deleteProfile(event,'${p.id}')" title="Delete">🗑</button>
+        </div>
+      </div>
+      <div class="pc-meta">
+        ${p.phone ? `<span class="pc-pill">📞 ${p.phone}</span>` : ''}
+        ${p.date ? `<span class="pc-pill">Date: ${p.date}</span>` : ''}
+        ${p.cost ? `<span class="pc-pill highlight">$${Number(p.cost).toFixed(2)}</span>` : ''}
+        ${p.photos.length ? `<span class="pc-pill">📷 ${p.photos.length} photo${p.photos.length !== 1 ? 's' : ''}</span>` : ''}
+        <span class="pc-pill">${p.status.toUpperCase()}</span>
+      </div>
+      ${p.issues ? `<div class="pc-issues">${p.issues}</div>` : ''}
+      ${photosHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── TOAST ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function loadProfiles() {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select("*")
+    .order('saved_at', { ascending: false });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  savedProfiles = data;
+}
+
+
+
+async function saveProfile() {
+  const id = editingProfileId || document.getElementById('profile-id-val').textContent;
+
+  const profile = {
+    id,
+    name: document.getElementById('f-name').value.trim() || 'Unknown Customer',
+    phone: document.getElementById('f-phone').value.trim(),
+    car: document.getElementById('f-car').value.trim(),
+    year: document.getElementById('f-year').value,
+    vin: document.getElementById('f-vin').value.trim(),
+    date: document.getElementById('f-date').value.trim(),
+    issues: document.getElementById('f-issues').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+    status: document.getElementById('f-status')?.value || "new",
+    cost: parseFloat(document.getElementById('f-cost').value) || 0,
+    photos: currentPhotos,
+    saved_at: new Date().toISOString()
+  };
+
+  const { error } = await supabase
+    .from('profiles')
+    .upsert(profile);
+
+  if (error) {
+    console.error(error);
+    alert("Save failed");
+    return;
+  }
+
+  showToast("✓ Profile saved!");
+  clearForm(true);
+  await loadProfiles();
+  goToList();
+}
+
+// ── EXPOSE TO WINDOW ──
+// This script is a module, so its functions are NOT global by default.
+// The HTML uses inline onclick="..." attributes, which only work with
+// functions attached to window. Without this block, every button click
+// (Save Profile, Sign In, Profiles, etc.) fails silently.
+Object.assign(window, {
+  doLogin, doLogout, goToList, goToForm,
+  filterCars, selectCar, clearCar,
+  formatPhone, countChars,
+  handlePhotos, removePhoto,
+  clearForm, editProfile, deleteProfile, saveProfile
+});
+
+</script>
+</body>
+</html>
