@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="pdf-template.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -149,9 +151,10 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   .pc-name { font-family: var(--font-head); font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
   .pc-id { font-size: 12px; font-weight: bold; color: var(--muted); font-family: monospace; margin-top: 2px; }
   .pc-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.6rem; }
-  .pc-pill { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 99px; padding: 3px 10px; font-size: 12px; color: var(--muted); }
+  .pc-pill { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 99px; padding: 3px 10px; font-size: 12px; color: white; }
   .pc-pill.highlight { background: rgba(232,96,44,0.1); border-color: rgba(232,96,44,0.2); color: var(--accent); }
-  .pc-issues { font-size: 13px; color: var(--muted); margin-top: 0.6rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pc-pill.highlightStatus { background: rgba(69, 232, 44, 0.1); border-color: rgba(9, 232, 44, 0.2); color: var(--accent); }
+  .pc-issues { font-size: 13px; color: var(--muted); margin-top: 0.6rem; line-height: 1.4; display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2;-webkit-box-orient: vertical; overflow: hidden; }
   .pc-delete { background: none; border: none; color: #4a4a5a; font-size: 18px; cursor: pointer; padding: 4px; border-radius: 6px; transition: color 0.2s; flex-shrink: 0; }
   .pc-delete:hover { color: #e74c3c; }
   .pc-photos { display: flex; gap: 4px; margin-top: 0.6rem; }
@@ -164,6 +167,19 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   /* TOAST */
   .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(100px); background: #1a3a2a; border: 1px solid rgba(46,204,113,0.3); color: var(--success); padding: 0.75rem 1.5rem; border-radius: 99px; font-size: 14px; font-weight: 500; z-index: 999; transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* DETAIL MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 200; align-items: center; justify-content: center; padding: 1.5rem; }
+  .modal-overlay.open { display: flex; }
+  .modal-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 1.75rem; position: relative; }
+  .modal-close { position: absolute; top: 1rem; right: 1rem; background: var(--surface2); border: none; color: var(--muted); width: 32px; height: 32px; border-radius: 50%; font-size: 18px; cursor: pointer; transition: color 0.2s; }
+  .modal-close:hover { color: var(--accent); }
+  .detail-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; margin-bottom: 1.25rem; padding-right: 2rem; }
+  .detail-row { margin-bottom: 1rem; }
+  .detail-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 0.3rem; }
+  .detail-value { font-size: 15px; color: var(--text); white-space: pre-wrap; }
+  .detail-photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0.5rem; }
+  .detail-photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); border: 0.5px solid var(--border); }
 
   @media print {
 
@@ -244,7 +260,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
       <input type="text" id="f-name" placeholder="e.g. James Whitfield" />
     </div>
     <div class="field">
-      <label for="f-date">Service Date</label>
+      <label for="f-date">Date</label>
       <input type="date" id="f-date" />
     </div>    
     <div class="field">
@@ -302,6 +318,17 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     </div>
 
     <div class="field">
+      <label for="f-customer-type">Customer Type</label>
+      <div class="select-wrap">
+        <select id="f-customer-type">
+          <option value="walk-in">Walk-in</option>
+          <option value="insurance">Insurance</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
       <label for="f-cost">Cost</label>
       <div class="cost-wrap">
         <span class="cost-prefix">$</span>
@@ -342,6 +369,14 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeDetailModal()" aria-label="Close">×</button>
+    <div id="detail-content"></div>
+    <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;" onclick="exportToPDF()">📄 Export to PDF</button>
+  </div>
+</div>
 
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
@@ -431,6 +466,7 @@ async function goToList() {
 }
 
 function goToForm() {
+  clearForm(true);
   showScreen('profile');
 }
 
@@ -560,7 +596,8 @@ dropZone.addEventListener('drop', e => {
 // ── CLEAR FORM ──
 function clearForm(silent) {
   if (!silent && !confirm('Clear all form data?')) return;
-  ['f-name','f-phone','f-car','f-vin','f-issues','f-notes','f-cost'].forEach(id => document.getElementById(id).value = '');
+  editingProfileId = null;
+  ['f-name','f-phone','f-car','f-vin','f-issues','f-notes'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('f-year').value = '';
   currentPhotos = [];
   renderPhotos();
@@ -585,9 +622,11 @@ function editProfile(e, id) {
   document.getElementById('f-car').value = profile.car;
   document.getElementById('f-year').value = profile.year;
   document.getElementById('f-vin').value = profile.vin;
+  document.getElementById('f-date').value = profile.date ? profile.date.substring(0, 10) : '';
   document.getElementById('f-issues').value = profile.issues;
   document.getElementById('f-notes').value = profile.notes;
   document.getElementById('f-status').value = profile.status || "new";
+  document.getElementById('f-customer-type').value = profile.customerType || "walk-in";
   document.getElementById('f-cost').value = profile.cost || '';
   currentPhotos = [...profile.photos];
   renderPhotos();
@@ -609,6 +648,91 @@ async function deleteProfile(e, id) {
   await loadProfiles();
   renderList();
 }
+
+// ── DETAIL MODAL ──
+let currentViewedId = null;
+
+function viewProfile(id) {
+  currentViewedId = id;
+  const p = savedProfiles.find(pr => pr.id === id);
+  if (!p) return;
+
+  const vehicleLabel = [p.year, p.car].filter(Boolean).join(' ') || '—';
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-title">${p.name}</div>
+    <div class="detail-row"><div class="detail-label">Date</div><div class="detail-value">${p.date || '—'}</div></div>
+    <div class="detail-row"><div class="detail-label">Phone</div><div class="detail-value">${p.phone || '—'}</div></div>
+    <div class="detail-row"><div class="detail-label">Vehicle</div><div class="detail-value">${vehicleLabel}</div></div>
+    <div class="detail-row"><div class="detail-label">VIN</div><div class="detail-value">${p.vin || '—'}</div></div>
+    <div class="detail-row"><div class="detail-label">Status</div><div class="detail-value">${(p.status || 'new').toUpperCase()}</div></div>
+    <div class="detail-row"><div class="detail-label">Customer Type</div><div class="detail-value">${p.customerType === 'walk-in' ? 'Walk-in' : p.customerType === 'insurance' ? 'Insurance' : 'Other'}</div></div>
+    <div class="detail-row"><div class="detail-label">Cost</div><div class="detail-value">${p.cost ? '$' + Number(p.cost).toFixed(2) : '—'}</div></div>
+    <div class="detail-row"><div class="detail-label">Issues Reported</div><div class="detail-value">${p.issues || '—'}</div></div>
+    <div class="detail-row"><div class="detail-label">Internal Notes</div><div class="detail-value">${p.notes || '—'}</div></div>
+    ${p.photos && p.photos.length ? `<div class="detail-row"><div class="detail-label">Photos</div><div class="detail-photos">${p.photos.map(src => `<img src="${src}">`).join('')}</div></div>` : ''}
+  `;
+  document.getElementById('detail-modal').classList.add('open');
+}
+
+function closeDetailModal() {
+  document.getElementById('detail-modal').classList.remove('open');
+}
+
+// PDF_TEMPLATE_B64 is now loaded from pdf-template.js (see <script> tag in <head>)
+function base64ToArrayBuffer(base64) {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+async function exportToPDF() {
+  const p = savedProfiles.find(pr => pr.id === currentViewedId);
+  if (!p) return;
+
+  const templateBytes = base64ToArrayBuffer(PDF_TEMPLATE_B64);
+  const pdfDoc = await PDFLib.PDFDocument.load(templateBytes);
+  const form = pdfDoc.getForm();
+
+  const carParts = (p.car || '').trim().split(' ');
+  const carMake = carParts[0] || '';
+  const carModel = carParts.slice(1).join(' ');
+
+  const notesBlock = [
+    p.issues ? `${p.issues}` : '',
+    p.notes ? `${p.notes}` : ''
+  ].filter(Boolean).join('\n\n');
+
+  const set = (field, value) => {
+    try { form.getTextField(field).setText(value || ''); }
+    catch (e) { console.warn('Field not found:', field); }
+  };
+
+  set('text_1vbot', carMake);
+  set('text_2xhui', carModel);
+  set('text_3ghe', p.year);
+  set('text_4qxsk', p.vin);
+  set('text_5orla', p.name);
+  set('text_6rftz', p.phone);
+  set('text_7ve', p.date);
+  set('text_10fbuq', p.cost ? `$${Number(p.cost).toFixed(2)}` : '');
+  set('textarea_9wwwr', notesBlock);
+
+  const pdfBytes = await pdfDoc.save();
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${p.id}_${(p.name || 'customer').replace(/\s+/g, '_')}.pdf`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('detail-modal').addEventListener('click', e => {
+  if (e.target.id === 'detail-modal') closeDetailModal();
+});
 
 // ── RENDER LIST ──
 function renderList() {
@@ -632,7 +756,7 @@ function renderList() {
       ${p.photos.length > 3 ? `<div class="pc-photo-more">+${p.photos.length - 3}</div>` : ''}
     </div>` : '';
 
-    return `<div class="profile-card">
+    return `<div class="profile-card" onclick="viewProfile('${p.id}')">
       <div class="pc-header">
         <div>
           <div class="pc-name">${p.name} - ${vehicleLabel}</div>
@@ -645,9 +769,9 @@ function renderList() {
       </div>
       <div class="pc-meta">
         ${p.phone ? `<span class="pc-pill">📞 ${p.phone}</span>` : ''}
-        ${p.date ? `<span class="pc-pill">Date: ${p.date}</span>` : ''}
         ${p.cost ? `<span class="pc-pill highlight">$${Number(p.cost).toFixed(2)}</span>` : ''}
         ${p.photos.length ? `<span class="pc-pill">📷 ${p.photos.length} photo${p.photos.length !== 1 ? 's' : ''}</span>` : ''}
+         ${p.customerType ? `<span class="pc-pill">${p.customerType === 'walk-in' ? 'Walk-in' : p.customerType === 'insurance' ? 'Insurance' : 'Other'}</span>` : ''}
         <span class="pc-pill">${p.status.toUpperCase()}</span>
       </div>
       ${p.issues ? `<div class="pc-issues">${p.issues}</div>` : ''}
@@ -668,7 +792,7 @@ async function loadProfiles() {
   const { data, error } = await supabase
     .from('profiles')
     .select("*")
-    .order('saved_at', { ascending: false });
+    .order('date', { ascending: false, nullsFirst: false });
 
   if (error) {
     console.error(error);
@@ -694,6 +818,7 @@ async function saveProfile() {
     issues: document.getElementById('f-issues').value.trim(),
     notes: document.getElementById('f-notes').value.trim(),
     status: document.getElementById('f-status')?.value || "new",
+    customerType: document.getElementById('f-customer-type')?.value || "walk-in",
     cost: parseFloat(document.getElementById('f-cost').value) || 0,
     photos: currentPhotos,
     saved_at: new Date().toISOString()
@@ -725,7 +850,8 @@ Object.assign(window, {
   filterCars, selectCar, clearCar,
   formatPhone, countChars,
   handlePhotos, removePhoto,
-  clearForm, editProfile, deleteProfile, saveProfile
+  clearForm, editProfile, deleteProfile, saveProfile,
+  viewProfile, closeDetailModal, exportToPDF
 });
 
 </script>
