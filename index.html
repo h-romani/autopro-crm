@@ -164,6 +164,28 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   .list-count { font-size: 13px; color: var(--muted); margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 0.5px solid var(--border); }
   .list-count strong { color: var(--text); }
 
+  .list-title { display: flex; align-items: center; gap: 10px; margin-bottom: 0.25rem; }
+  .list-back { background: transparent; border: 1px solid var(--border); color: var(--muted); width: 34px; height: 34px; border-radius: 50%; font-size: 16px; cursor: pointer; flex-shrink: 0; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+  .list-back:hover { border-color: var(--accent); color: var(--accent); }
+  .list-title h2 { font-family: var(--font-head); font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+
+  /* DASHBOARD */
+  #dashboard { background: var(--bg); flex-direction: column; }
+  .dash-body { padding: 1.5rem 1.25rem 3rem; flex: 1; overflow-y: auto; }
+  .dash-welcome { font-family: var(--font-head); font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 0.3rem; }
+  .dash-sub { color: var(--muted); font-size: 14px; margin-bottom: 1.75rem; }
+  .month-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.9rem; }
+  .month-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.1rem; cursor: pointer; transition: all 0.2s; position: relative; min-height: 108px; display: flex; flex-direction: column; justify-content: space-between; }
+  .month-card:hover { border-color: rgba(232,96,44,0.4); background: #1c1c25; transform: translateY(-1px); }
+  .month-card:active { transform: scale(0.98); }
+  .month-card.latest { grid-column: 1 / -1; background: linear-gradient(135deg, rgba(232,96,44,0.12), var(--surface)); border-color: rgba(232,96,44,0.3); }
+  .month-card-label { font-family: var(--font-head); font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.2px; }
+  .month-card-count { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .month-card-total { font-family: var(--font-head); font-size: 22px; font-weight: 700; color: var(--accent); margin-top: 0.75rem; }
+  .month-card-arrow { position: absolute; top: 1rem; right: 1rem; color: var(--muted); font-size: 14px; }
+  .dash-empty { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+  .dash-empty .empty-icon { font-size: 48px; margin-bottom: 1rem; opacity: 0.4; }
+
   /* TOAST */
   .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(100px); background: #1a3a2a; border: 1px solid rgba(46,204,113,0.3); color: var(--success); padding: 0.75rem 1.5rem; border-radius: 99px; font-size: 14px; font-weight: 500; z-index: 999; transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); white-space: nowrap; }
   .toast.show { transform: translateX(-50%) translateY(0); }
@@ -242,12 +264,28 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   </div>
 </div>
 
+<!-- DASHBOARD -->
+<div class="screen" id="dashboard">
+  <div class="topbar">
+    <div class="topbar-brand"><span class="topbar-dot"></span>AutoPro CRM</div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="goToForm()">+ New</button>
+      <button class="icon-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+  <div class="dash-body">
+    <div class="dash-welcome">Welcome back!</div>
+    <div class="dash-sub">Tap a month to see the full breakdown.</div>
+    <div id="month-grid" class="month-grid"></div>
+  </div>
+</div>
+
 <!-- PROFILE FORM -->
 <div class="screen" id="profile">
   <div class="topbar">
     <div class="topbar-brand"><span class="topbar-dot"></span>AutoPro CRM</div>
     <div class="topbar-actions">
-      <button class="icon-btn" onclick="goToList()">Profiles</button>
+      <button class="icon-btn" onclick="goToDashboard()">Dashboard</button>
       <button class="icon-btn" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -356,12 +394,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   <div class="topbar">
     <div class="topbar-brand"><span class="topbar-dot"></span>AutoPro CRM</div>
     <div class="topbar-actions">
-      <button class="icon-btn active-tab" onclick="goToList()">Profiles</button>
       <button class="icon-btn" onclick="goToForm()">+ New</button>
       <button class="icon-btn" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
   <div class="list-body">
+    <div class="list-title">
+      <button class="list-back" onclick="goToDashboard()" title="Back to Dashboard">←</button>
+      <h2 id="list-month-label">All Profiles</h2>
+    </div>
     <div id="list-count" class="list-count"></div>
     <div id="profiles-container"></div>
   </div>
@@ -437,8 +478,7 @@ const CARS = [
 (async function checkSession() {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) {
-    showScreen('profile');
-    newProfileId();
+    await goToDashboard();
   }
 })();
 
@@ -460,6 +500,7 @@ function showScreen(id) {
 }
 
 async function goToList() {
+  currentMonthFilter = null;
   await loadProfiles();
   renderList();
   showScreen('profiles-list');
@@ -468,6 +509,71 @@ async function goToList() {
 function goToForm() {
   clearForm(true);
   showScreen('profile');
+}
+
+// ── DASHBOARD (grouped by month/year) ──
+let currentMonthFilter = null; // 'YYYY-MM' or null
+
+function monthKeyOf(dateStr) {
+  if (!dateStr) return null;
+  const parts = String(dateStr).substring(0, 10).split('-');
+  if (parts.length < 2) return null;
+  return `${parts[0]}-${parts[1]}`; // 'YYYY-MM'
+}
+
+function monthLabelOf(key) {
+  if (!key) return 'No Date';
+  const [y, m] = key.split('-').map(Number);
+  const names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return `${names[m - 1]} ${y}`;
+}
+
+async function goToDashboard() {
+  await loadProfiles();
+  renderDashboard();
+  showScreen('dashboard');
+}
+
+function renderDashboard() {
+  const grid = document.getElementById('month-grid');
+
+  if (!savedProfiles.length) {
+    grid.innerHTML = `<div class="dash-empty" style="grid-column: 1 / -1;"><div class="empty-icon">🗂️</div><p>No profiles saved yet.</p><small>Save a customer profile and it will appear here.</small></div>`;
+    return;
+  }
+
+  const groups = {};
+  savedProfiles.forEach(p => {
+    const key = monthKeyOf(p.date) || 'no-date';
+    if (!groups[key]) groups[key] = { count: 0, total: 0 };
+    groups[key].count += 1;
+    groups[key].total += Number(p.cost) || 0;
+  });
+
+  const keys = Object.keys(groups).sort((a, b) => {
+    if (a === 'no-date') return 1;
+    if (b === 'no-date') return -1;
+    return a < b ? 1 : -1; // newest first
+  });
+
+  grid.innerHTML = keys.map((key, i) => {
+    const g = groups[key];
+    const label = key === 'no-date' ? 'No Date' : monthLabelOf(key);
+    return `<div class="month-card${i === 0 ? ' latest' : ''}" onclick="viewMonth('${key}')">
+      <div>
+        <div class="month-card-label">${label}</div>
+        <div class="month-card-count">${g.count} profile${g.count !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="month-card-total">$${g.total.toFixed(2)}</div>
+      <span class="month-card-arrow">→</span>
+    </div>`;
+  }).join('');
+}
+
+function viewMonth(key) {
+  currentMonthFilter = key === 'no-date' ? 'no-date' : key;
+  renderList();
+  showScreen('profiles-list');
 }
 
 // ── LOGIN ──
@@ -489,8 +595,7 @@ async function doLogin() {
   }
 
   err.style.display = 'none';
-  showScreen('profile');
-  newProfileId();
+  await goToDashboard();
 }
 
 document.addEventListener('keydown', e => {
@@ -738,17 +843,28 @@ document.getElementById('detail-modal').addEventListener('click', e => {
 function renderList() {
   const container = document.getElementById('profiles-container');
   const countEl = document.getElementById('list-count');
+  const labelEl = document.getElementById('list-month-label');
 
-  if (!savedProfiles.length) {
+  const profiles = currentMonthFilter
+    ? savedProfiles.filter(p => (monthKeyOf(p.date) || 'no-date') === currentMonthFilter)
+    : savedProfiles;
+
+  if (labelEl) {
+    labelEl.textContent = currentMonthFilter
+      ? (currentMonthFilter === 'no-date' ? 'No Date' : monthLabelOf(currentMonthFilter))
+      : 'All Profiles';
+  }
+
+  if (!profiles.length) {
     countEl.innerHTML = '';
     container.innerHTML = `<div class="list-empty"><div class="empty-icon">🗂️</div><p>No profiles saved yet.</p><small>Save a customer profile and it will appear here.</small></div>`;
     return;
   }
 
-  const totalCost = savedProfiles.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
-  countEl.innerHTML = `<strong>${savedProfiles.length}</strong> profile${savedProfiles.length !== 1 ? 's' : ''} saved &nbsp;·&nbsp; <strong>$${totalCost.toFixed(2)}</strong> total`;
+  const totalCost = profiles.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
+  countEl.innerHTML = `<strong>${profiles.length}</strong> profile${profiles.length !== 1 ? 's' : ''} saved &nbsp;·&nbsp; <strong>$${totalCost.toFixed(2)}</strong> total`;
 
-  container.innerHTML = savedProfiles.map(p => {
+  container.innerHTML = profiles.map(p => {
     const initials = p.name.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase() || '?';
     const vehicleLabel = [p.year, p.car].filter(Boolean).join(' ') || null;
     const photosHtml = p.photos.length ? `<div class="pc-photos">
@@ -836,8 +952,7 @@ async function saveProfile() {
 
   showToast("✓ Profile saved!");
   clearForm(true);
-  await loadProfiles();
-  goToList();
+  await goToDashboard();
 }
 
 // ── EXPOSE TO WINDOW ──
@@ -847,6 +962,7 @@ async function saveProfile() {
 // (Save Profile, Sign In, Profiles, etc.) fails silently.
 Object.assign(window, {
   doLogin, doLogout, goToList, goToForm,
+  goToDashboard, viewMonth,
   filterCars, selectCar, clearCar,
   formatPhone, countChars,
   handlePhotos, removePhoto,
